@@ -1,0 +1,248 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load custom_filters %}
+
+{% block content %}
+<style>
+    body { background-color: #ffffff; }
+    .post-header, .post-footer { display: flex; align-items: center; justify-content: space-between; padding: 10px; }
+    .post-header .username, .comment .username { font-weight: bold; margin-right: 10px; }
+    .post-img { width: 100%; }
+    .comments { margin-top: 10px; }
+    .comment { display: flex; margin-bottom: 10px; }
+    .comment-text { flex-grow: 1; }
+    .icon { margin-right: 15px; cursor: pointer; }
+    .likes, .post-caption, .post-date { margin-left: 15px; }
+    .post-caption { margin-top: 5px; }
+    .post-date { color: #f3f3f3; font-size: 12px; }
+    .add-comment { border-top: 1px solid #fcfcfc; padding: 10px 15px; display: flex; align-items: center; }
+    .add-comment input { flex-grow: 1; border: none; }
+    .add-comment input:focus { outline: none; }
+    .post-options {
+    position: relative;
+    cursor: pointer;
+}
+
+.post-options-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    background-color: white;
+    padding: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,.2);
+    z-index: 10; /* Ensure it appears above other content */
+}
+
+.post-options:hover .post-options-menu {
+    display: block;
+}
+
+.delete-post-link {
+    color: #dc3545; /* Bootstrap danger color */
+    text-decoration: none;
+}
+
+.favorite-button {
+            background-color: transparent; /* Make background transparent */
+            /* Or set to any color you prefer, e.g., white */
+            /* background-color: #ffffff; */
+            border: 1px solid #ccc; /* Optional: Adds a border */
+            color: #333; /* Text color */
+            padding: 10px 20px; /* Padding around text */
+            text-align: center; /* Center the text */
+            text-decoration: none; /* Remove underline from any text */
+            display: inline-block; /* Allow setting dimensions */
+            font-size: 16px; /* Text size */
+            margin: 4px 2px; /* Spacing around the button */
+            cursor: pointer; /* Change cursor to pointer on hover */
+            border-radius: 5px; /* Optional: Rounded corners */
+        }
+</style>
+
+    
+
+<div class="container mt-4">
+    <br>
+    <br>
+    <div class="row justify-content-center" style="display: flex; justify-content: center; gap: 20px;">
+        <div class="col-md-6">
+            <div class="post">
+                <div class="post-header">
+                    <div class="d-flex align-items-center">
+                        <img src="{{ post.user.profile.image.url }}" alt="User Picture" class="rounded-circle me-2" style="width: 30px; height: 30px;">
+                        <a href="{% url 'profile' post.user.username %}" class="text-dark text-decoration-none username">{{ post.user.username }}</a>
+                    </div>
+                    <div class="post-options">
+                        <i class="fa-solid fa-ellipsis post-options-toggle"></i>
+                        <div class="post-options-menu">
+                            <button class="favorite-button" onclick="copyPostLink('{{ post.id }}')">
+                                <i class="fa-solid fa-copy"></i>
+                            </button>
+                            
+                            {% if user.is_authenticated and post.user == user %}
+                            <button class="favorite-button">
+                            <a href="{% url 'delete-post' post_id=post.id %}" class="delete-post-link" onclick="return confirm('Are you sure you want to delete this post?');"><i class="fa-solid fa-trash"></i></a>
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                                        
+                </div>
+                <div>
+                    {% if post.picture.url|endswith:".jpg" or post.picture.url|endswith:".jpeg" or post.picture.url|endswith:".png" %}
+                        <img src="{{ post.picture.url }}" alt="Post Content" class="post-img">
+                    {% else %}
+                        <video controls class="post-img">
+                            <source src="{{ post.picture.url }}" type="video/mp4">
+                            Your browser does not support the video tag.
+                        </video>
+                    {% endif %}
+                    <div class="post-caption" style="margin-left: 5px;">
+                        <strong>Caption:</strong> {{ post.caption }}
+                    </div>
+                    <div class="post-tags" style="margin-left: 5px;">
+                        <strong>Tags:</strong>
+                        {% for tag in post.tags.all %}
+                            <span>{{ tag.title }}</span>{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="post-footer">
+                    <div>
+                        <button class="post__button" onclick="toggleLikeIcon('{{ post.id }}')">
+                            <img id="likeIcon{{ post.id }}" src="{% if post.is_liked %}{% static 'media/like-heart-svgrepo-com.svg' %}{% else %}{% static 'media/like-svgrepo-com.svg' %}{% endif %}" alt="{% if post.is_liked %}Unlike{% else %}Like{% endif %}">
+                        </button>
+                    </div>
+                    <svg class="icon" width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><!-- Bookmark icon SVG here --></svg>
+                    <button onclick="toggleFavorite('{{ post.id }}')" class="favorite-button">
+                        {% if is_saved %}
+                            <i id="favoriteIcon{{ post.id }}" class="fa-solid fa-bookmark" style="cursor:pointer;"></i>
+                        {% else %}
+                            <i id="favoriteIcon{{ post.id }}" class="fa-regular fa-bookmark bookmark-icon" style="cursor:pointer;"></i>
+                        {% endif %}
+                    </button>
+                </div>
+
+                <div class="likes" id="likesCount{{ post.id }}">
+                    <strong>{{ post.likes }} likes</strong>
+                </div>
+
+                <span class="post-date" style="color: black;">{{ post.posted }}</span>
+            </div>
+        </div>
+        <div class="display-right" style="flex: 1; max-width: 400px; border: 1px solid #333; display: flex; flex-direction: column;">
+            <div class="post-caption" style="padding: 10px;">
+                <span><strong>{{ post.user.username }}</strong> {{ post.caption }}</span>
+            </div>
+        
+            <!-- Scrollable Comments Container -->
+            <div class="comments" style="flex: 1; overflow-y: auto; padding: 10px;">
+                {% for comment in comments %}
+                <div class="comment" style="margin-bottom: 10px;">
+                    <strong class="username">{{ comment.user.username }}</strong>
+                    <span class="comment-text" style="color: #333;">{{ comment.body }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        
+            <!-- Comment Form with Button Beside Input Field -->
+            <div class="add-comment" style="padding: 10px; display: flex; align-items: center;">
+                <form method="POST" style="display: flex; width: 100%; align-items: center;">
+                    {% csrf_token %}
+                    <input type="text" name="body" placeholder="Add a comment..." style="flex-grow: 1; color: #333; border: 1px solid #333; border-radius: 5px; padding: 5px; margin-right: 10px;">
+                    <button type="submit" class="btn btn-outline-secondary btn-sm">Post</button>
+                </form>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+<script type="text/javascript">
+    // Function to get the CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    function toggleLikeIcon(postId) {
+        const csrftoken = getCookie('csrftoken'); // Existing code to get CSRF token
+        fetch(`/like/${postId}`, { // Make sure the URL is correct
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({'postId': postId})
+        })
+        .then(response => response.json())  
+        .then(data => {
+            const likeIcon = document.getElementById('likeIcon' + postId);
+            const likesCountElement = document.getElementById('likesCount' + postId);
+            if (data.liked) {
+                likeIcon.src = '{% static "media/like-svgrepo-com.svg" %}'; // Path to the 'liked' icon
+            } else {
+                likeIcon.src = '{% static "media/like-heart-svgrepo-com.svg" %}'; // Path to the 'not liked' icon
+            }
+            // Update likes count on the page
+            likesCountElement.innerHTML = `<strong>${data.likes} likes</strong>`;
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+    function toggleFavorite(postId) {
+        const csrftoken = getCookie('csrftoken'); // Reusing the getCookie function
+        fetch(`/favorite/${postId}`, { // Adjust the URL as needed
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrftoken,
+            },
+            body: JSON.stringify({'postId': postId})
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Toggle the favorite icon based on the new state
+            const favoriteIcon = document.querySelector(`#favoriteIcon${postId}`);
+            if (data.is_saved) {
+                favoriteIcon.classList.remove('fa-regular');
+                favoriteIcon.classList.add('fa-solid');
+            } else {
+                favoriteIcon.classList.remove('fa-solid');
+                favoriteIcon.classList.add('fa-regular');
+            }
+        })
+        .catch((error) => {
+            console.error('Error:', error);
+        });
+    }
+
+    function copyPostLink(postId) {
+        // Construct the URL you want to copy
+        // Adjust the URL pattern as per your app's routing
+        const postUrl = `${window.location.origin}/${postId}`;
+
+        // Use the Clipboard API to copy the text
+        navigator.clipboard.writeText(postUrl).then(function() {
+            console.log('Copying to clipboard was successful!');
+            // Optionally, display a message to the user indicating success
+            alert('Post link copied to clipboard!');
+        }, function(err) {
+            console.error('Could not copy text: ', err);
+        });
+    }
+
+    </script>
+{% endblock content %}

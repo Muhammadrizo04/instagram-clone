@@ -1,0 +1,131 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<style>
+.settings-container {
+    display: flex;
+    width: 100%;
+}
+
+.settings-menu ul {
+    list-style-type: none;
+    padding: 0;
+    margin-top: 120px;
+    margin-left: 80px;
+}
+
+.settings-menu ul li {
+    padding: 8px;
+    margin-bottom: 4px;
+    background-color: #f1f1f1;
+    cursor: pointer;
+}
+
+.settings-menu ul li:hover {
+    background-color: #ddd;
+}
+
+.content-section {
+    display: none;
+}
+
+.settings-content {
+    flex-grow: 1;
+    padding-left: 20px;
+}
+
+.email-change {
+    margin-top: 200px;
+    margin-left: 400px;
+}
+
+.change-password {
+    margin-top: 200px;
+    margin-left: 400px;
+}
+
+.change-profil {
+    margin-top: 200px;
+    margin-left: 400px; 
+}
+
+</style>
+
+<div class="settings-container">
+    <div class="settings-menu">
+        <ul>
+            <li onclick="showSection('update-password')" style="margin-bottom: 80px;"><i class="fa-regular fa-user" style="margin-right: 10px;"></i>Update Password</li>
+            <li onclick="showSection('update-email')" style="margin-bottom: 80px;"><i class="fa-regular fa-envelope" style="margin-right: 10px;"></i>Update Email</li>
+            <li onclick="showSection('my-information')" style="margin-bottom: 80px;"><i class="fa-solid fa-circle-info" style="margin-right: 10px;"></i>My Account</li>
+        </ul>
+    </div>
+    <div class="settings-content">
+        <div id="profile" class="content-section">Profile Content...</div>
+        <div id="update-password" class="content-section" style="display:none;">
+            <div class="change-password">
+            <form method="POST" action="">
+                {% csrf_token %}
+                <h3>Change Password</h3>
+                {{ password_form.as_p }}
+                <button type="submit" name="password_form" class="btn btn-primary">Update Password</button>
+            </form>
+            </div>
+        </div>
+
+
+        <div id="update-email" class="content-section" style="display:none;">
+            <div class="email-change">
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <h3>Change Email</h3>
+                    <h5>Enter the new email address you want to change here</h5>
+                    {{ email_form.as_p }}
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+        </div>
+
+
+        <div id="my-information" class="content-section" style="display:none;">
+            <div class="change-profil">
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <h3>My Account</h3>
+                    {{ profil_form.as_p }}
+                    <div>
+                        <p><strong>Public Account:</strong> Because it is a publicly available account, its profile and publications are visible to everyone on Instagram. This includes the full number of your photos and videos, hashtags, posts, and your list of followers and those you follow.</p>
+                        <p><strong>Private Account:</strong> If you have a private account, only approved followers can see your publications and full profile details. This helps protect your privacy by limiting who can see your posts and follower lists.</p>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save Changes</button>
+                </form>
+            </div>
+        </div>
+        
+    </div>
+</div>
+
+
+
+
+<script>
+    function showSection(sectionId) {
+        // Hide all sections
+        document.querySelectorAll('.content-section').forEach(function(section) {
+            section.style.display = 'none';
+        });
+    
+        // Show the selected section
+        document.getElementById(sectionId).style.display = 'block';
+    }
+
+    $(document).ready(function(){
+        // Replace '#id_birthday' with the actual ID of your birthday field
+        $('#id_birthday').datepicker({
+            format: "yyyy-mm-dd", // Adjust date format as needed
+            autoclose: true,
+            todayHighlight: true
+        });
+    });
+</script>
+    
+{% endblock %}

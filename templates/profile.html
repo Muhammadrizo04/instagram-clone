@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block content %}
+{% load custom_filters %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <!-- Metadata -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <meta name="author" content="George W. Park">
+    <meta name="description" content="This project demonstrates how CSS grid (with flexbox and float fallback) can be used to re-create the layout of an Instagram profile page.">
+
+    <!-- Title -->
+    <title>Instagram Profile Layout</title>
+
+    <!-- External CSS Files -->
+    <link rel="stylesheet" href="{% static 'assets3/css/reset.css' %}">
+    <link rel="stylesheet" href="{% static 'assets3/css/styles.css' %}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600">
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.2.0/css/all.css">
+
+</head>
+<body>
+
+    <header>
+        <br><br><br>
+        <div class="container">
+            <div class="profile">
+                <div class="profile-image">
+                    {% if can_view_details %}
+                        <img src="{{ profile.image.url }}" alt="{{ profile.user.username }}" style="width: 200px; height: 200px;">
+                    {% else %}
+                        <img src="{% static 'default.jpg' %}" alt="" style="width: 200px; height: 200px;">
+                    {% endif %}
+                </div>
+                <div class="profile-user-settings">
+                       
+                        <h5 style="font-size: 15px;" class="profile-user-name">@{{profile.user.username}}</h5>
+                        
+
+                        {% if request.user.is_authenticated and request.user == profile.user %}
+                        <a style="text-decoration: none;" href="{% url 'editprofile' %}" class="btn profile-edit-btn">Edit Profile</a>
+                        <form action="{% url 'logout' %}" method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <button type="submit" class="btn profile-edit-btn">Logout</button>
+                        </form>
+                        <a href="{% url 'setting' %}">
+                        <button class="btn profile-settings-btn" aria-label="profile settings"><i class="fas fa-cog" aria-hidden="true"></i></button></a>
+                        {% endif %}
+                        <br><br>
+                        <div>
+                            {% if profile.fullname %}
+                            <p class="profile-user-name" style="font-size: 25px;">{{profile.fullname}}</p> <br>
+                            {% endif %}
+                        </div>
+                        {% if request.user.is_authenticated and request.user != profile.user %}
+                            {% if follow_status == True %}
+                                <a href="{% url 'follow' profile.user 0 %}" class="btn profile-edit-btn" style="color: red;">Unfollow</a> <br><br>
+                            {% else %}
+                                <a href="{% url 'follow' profile.user 1 %}" class="btn profile-edit-btn" style="color: green;">Follow</a> <br><br>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if request.user.is_authenticated and request.user != profile.user %}
+                                <a href="{% url 'conversation' profile.user  %}" class="btn profile-edit-btn">Message</a> <br><br>
+                        {% endif %}
+                        <br>
+                            
+                    
+
+                </div>
+
+                
+
+                {% if can_view_details %}
+                <div class="profile-bio">
+                    {% if profile.bio %}<p>◉ {{ profile.bio }}</p>{% endif %}
+                    {% if profile.location %}<p>◉ {{ profile.location }}</p>{% endif %}
+                    {% if profile.url %}<p>◉ <a href="{{ profile.url }}">{{ profile.url }}</a></p>{% endif %}
+                    <br>
+                </div>
+            {% endif %}
+
+
+            <div class="profile-stats">
+                <ul>
+                    {% if can_view_details %}
+                        <li><span class="profile-stat-count">{{ posts_count }}</span> posts</li>
+                        <li><span class="profile-stat-count">{{ followers_count }}</span> followers</li>
+                        <li><span class="profile-stat-count">{{ following_count }}</span> following</li>
+                    {% endif %}
+                </ul>
+                <br>
+                <div class="profile-user-settings">
+                    {% if request.user == profile.user %}
+                        <a href="{% url 'profilefavourite' profile.user %}" class="btns profile-edit-btn"><i class="fa-regular fa-bookmark"></i>Saved</a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+    
+<main>
+    <div class="container">
+        <div class="gallery">
+            {% if can_view_details %}
+                {% for post in posts %}
+                    <div class="col-md-4 mb-4">
+                        <div class="media-preview" style="width: 300px; height: 300px; overflow: hidden;">
+                            {% if post.picture.url|endswith:".jpg" or post.picture.url|endswith:".jpeg" or post.picture.url|endswith:".png" %}
+                                <a href="{% url 'post-details' post_id=post.id %}">
+                                    <img src="{{ post.picture.url }}" alt="Post Content" class="post-img">
+                                </a>
+                            {% else %}
+                                <a href="{% url 'post-details' post_id=post.id %}">
+                                    <video controls class="post-img">
+                                        <source src="{{ post.picture.url }}" type="video/mp4">
+                                        Your browser does not support the video tag.
+                                    </video>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p style="font-size: 24px; margin-left: 300px;">This profile is private.</p>
+            {% endif %}
+        </div>
+    </div>
+</main>
+{% endblock %}
+</body>
+</html>
